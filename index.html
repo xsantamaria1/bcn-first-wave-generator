@@ -1,9 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!--
+First Wave Generator
+Developed by Xavi Santamaria
+2026
+-->
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>BCN First Wave Generator</title>
+<title>First Wave Generator </title>
 <style>
 :root{--navy:#002b5c;--yellow:#ffd200;--red:#e30613;--amber:#f7b500;--green:#008542}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f7;color:#111}
@@ -22,18 +28,19 @@ canvas{background:#002b5c;width:min(390px,95vw);height:auto;border-radius:14px;b
 <body>
 <div class="wrap">
   <div class="panel">
-    <h1>BCN First Wave Generator</h1>
+    <h1>First Wave Generator</h1>
     <div class="row"><div><label>Week</label><input id="week" value="20"></div><div><label>Dates</label><input id="dates" value="11 – 17 MAY 2025"></div></div>
-    <label>Base</label><input id="base" value="BARCELONA BASE">
+    <div class="row"><div><label>Base</label><input id="base" value="BARCELONA BASE"></div><div><label>IATA Base Code</label><input id="baseCode" value="BCN" maxlength="4"></div></div>
     <div class="row"><div><label>Scan 1st pax STD -30 (%)</label><input id="scan" type="number" value="68"></div><div><label>Target (%)</label><input id="target" type="number" value="95"></div></div>
     <div class="row"><div><label>Door Closure vs last week (%)</label><input id="door" type="number" value="-8"></div><div><label>First Wave OTP (%)</label><input id="otp" type="number" value="91"></div></div>
+    <div class="row"><div></div><div><label>FW OTP Target (%)</label><input id="otpTarget" type="number" value="95"></div></div>
     <div class="row"><div><label>Status override</label><select id="status"><option value="AUTO">AUTO</option><option value="RED">RED</option><option value="AMBER">AMBER</option><option value="GREEN">GREEN</option></select></div><div><label>Bottom message</label><input id="bottommsg" value="THANK YOU FOR YOUR COMMITMENT!"></div></div>
-    <button onclick="drawPoster()">Refresh preview</button>
-    <button class="green" onclick="downloadPNG()">Download Image</button>
-    <button class="red" onclick="setDemo('RED')">Red</button>
-    <button class="amber" onclick="setDemo('AMBER')">Amber</button>
-    <button class="green" onclick="setDemo('GREEN')">Green</button>
-    <p class="hint">Developed by Xavi Santamaria for RYR BCN Team</p>
+    <button onclick="drawPoster()">Actualizar preview</button>
+    <button class="green" onclick="downloadPNG()">Descargar PNG WhatsApp</button>
+    <button class="red" onclick="setDemo('RED')">Rojo</button>
+    <button class="amber" onclick="setDemo('AMBER')">Ámbar</button>
+    <button class="green" onclick="setDemo('GREEN')">Verde</button>
+    <p class="hint"></p>
   </div>
   <canvas id="poster" width="1080" height="1795"></canvas>
 </div>
@@ -61,11 +68,11 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
 }
 
 const C={navy:'#002b5c',navy2:'#001f49',yellow:'#ffd200',red:'#e30613',amber:'#f7b500',green:'#008542',white:'#fff',grey:'#dedede',paleRed:'#fff0f0',paleAmber:'#fff8df',paleGreen:'#edf8f0'};
-function val(id){return document.getElementById(id).value} function num(id){return parseFloat(val(id)||0)}
+function val(id){return document.getElementById(id).value} function num(id){return parseFloat(val(id)||0)} function baseCode(){return (val('baseCode')||'BCN').trim().toUpperCase()}
 function mainStatus(){const o=val('status');if(o!=='AUTO')return o;const s=num('scan'),t=num('target');if(s>=t)return'GREEN';if(s>=90)return'AMBER';return'RED'}
 function mainTheme(){const st=mainStatus();if(st==='GREEN')return{name:'GREEN',color:C.green,title:'FIRST WAVE ON TRACK',note:'Excellent!',icon:'check'};if(st==='AMBER')return{name:'AMBER',color:C.amber,title:'FIRST WAVE NEEDS ATTENTION',note:'Keep it up!',icon:'warn'};return{name:'RED',color:C.red,title:'FIRST WAVE AT RISK',note:"Let's improve!",icon:'warn'}}
 function doorTheme(){const d=num('door');if(d>=0)return{color:C.green,pale:C.paleGreen,label:'BETTER THAN LAST WEEK'};if(d>=-5)return{color:C.amber,pale:C.paleAmber,label:'SLIGHTLY BELOW LAST WEEK'};return{color:C.red,pale:C.paleRed,label:'WORSE VS LAST WEEK'}}
-function otpTheme(){const o=num('otp');if(o>=95)return{color:C.green,pale:C.paleGreen,label:'ABOVE TARGET'};if(o>=92)return{color:C.amber,pale:C.paleAmber,label:'ON TRACK'};return{color:C.red,pale:C.paleRed,label:'BELOW TARGET'}}
+function otpTheme(){const o=num('otp'),t=num('otpTarget')||95;if(o>=t)return{color:C.green,pale:C.paleGreen,label:'ABOVE TARGET'};if(o>=t-3)return{color:C.amber,pale:C.paleAmber,label:'ON TRACK'};return{color:C.red,pale:C.paleRed,label:'BELOW TARGET'}}
 function fmtPct(x){return Math.round(x)+'%'} function fmtSigned(x){return(x>0?'+':'')+Math.round(x)+'%'}
 function rr(ctx,x,y,w,h,r,fill,stroke=null,lw=2){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}}
 function txt(ctx,text,x,y,size,fill=C.navy,align='left',weight=900,font='Arial'){ctx.fillStyle=fill;ctx.textAlign=align;ctx.textBaseline='top';ctx.font=`${weight} ${size}px ${font}`;ctx.fillText(text,x,y)}
@@ -251,10 +258,10 @@ ctx.strokeStyle='#b8b8b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(530,382);ct
 titleWithLines(ctx,'IMPACT ON PERFORMANCE',735);
 rr(ctx,70,800,440,245,22,dh.pale);rr(ctx,545,800,465,245,22,oh.pale);
 
-center(ctx,'DOOR CLOSURE STD -5',290,835,30,C.navy);center(ctx,fmtSigned(num('door')),320,890,78,dh.color);rr(ctx,105,980,365,45,8,dh.color);fitText(ctx,dh.label,287,990,340,22,C.white,'center');
-center(ctx,'FIRST WAVE OTP',780,835,30,C.navy);center(ctx,fmtPct(num('otp')),805,890,78,oh.color);rr(ctx,585,980,385,45,8,oh.color);center(ctx,oh.label,778,990,21,C.white);
+center(ctx,'DOOR CLOSURE STD -5',290,835,30,C.navy);center(ctx,fmtSigned(num('door')),320,910,74,dh.color);rr(ctx,105,980,365,45,8,dh.color);fitText(ctx,dh.label,287,990,340,22,C.white,'center');
+center(ctx,'FIRST WAVE OTP',780,835,30,C.navy);center(ctx,fmtPct(num('otp')),805,900,76,oh.color);rr(ctx,585,980,385,45,8,oh.color);center(ctx,oh.label,778,990,21,C.white);
 rr(ctx,55,1070,970,135,16,C.navy);iconStopwatch(ctx,125,1125,90,th.color);txt(ctx,'SCAN BEFORE STD -30',205,1108,36,C.white);ctx.strokeStyle=C.white;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(675,1090);ctx.lineTo(675,1178);ctx.stroke();center(ctx,'EVERY',850,1095,28,C.white);center(ctx,'MINUTE COUNTS!',850,1135,28,C.white);
-rr(ctx,55,1220,970,65,8,th.color);txt(ctx,'»»',95,1235,42,C.white);center(ctx,'BE ON TIME. SCAN ON TIME. KEEP BCN ON TIME.',570,1245,28,C.white);
+rr(ctx,55,1220,970,65,8,th.color);txt(ctx,'»»',95,1235,42,C.white);center(ctx,`BE ON TIME. SCAN ON TIME. KEEP ${baseCode()} ON TIME.`,570,1245,28,C.white);
 ctx.strokeStyle='#bbb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(540,1315);ctx.lineTo(540,1445);ctx.stroke();
 txt(ctx,th.note,95,1375,56,C.navy,'left',400,'Segoe Print,Comic Sans MS,Arial');
 ctx.strokeStyle=th.color;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(100,1470);ctx.lineTo(410,1430);ctx.stroke();
@@ -272,7 +279,7 @@ ctx.bezierCurveTo(666,1470,648,1480,648,1480);
 ctx.bezierCurveTo(648,1480,630,1470,630,1460);
 ctx.fill();
 ctx.restore();
-txt(ctx,'BCN CREW',685,1450,38,th.color,'left',900,'Arial');
+txt(ctx,`${baseCode()} CREW`,685,1450,38,th.color,'left',900,'Arial');
 rr(ctx,35,1550,1010,150,28,th.color);center(ctx,'SAFETY FIRST — NO COMPROMISE',540,1600,45,th.name==='AMBER'?C.navy:C.white);
 ctx.fillStyle=C.navy;
 ctx.fillRect(35,1700,1010,80);
@@ -295,9 +302,10 @@ if (handshakeImg.complete) {
 }
 txt(ctx,'WORK TOGETHER',690,1728,30,C.white,'left',900,'Arial');
 }
-function downloadPNG(){drawPoster();const a=document.createElement('a');a.download=`BCN_First_Wave_Week_${val('week')}_${mainStatus()}.png`;a.href=document.getElementById('poster').toDataURL('image/png');a.click()}
+function downloadPNG(){drawPoster();const a=document.createElement('a');a.download=`${baseCode()}_First_Wave_Week_${val('week')}_${mainStatus()}.png`;a.href=document.getElementById('poster').toDataURL('image/png');a.click()}
 function setDemo(s){document.getElementById('status').value=s;if(s==='RED'){scan.value=68;door.value=-8;otp.value=91}if(s==='AMBER'){scan.value=93;door.value=-3;otp.value=93}if(s==='GREEN'){scan.value=96;door.value=5;otp.value=97}drawPoster()}
 document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',drawPoster));drawPoster();
-</script>
+</script> 
 </body>
 </html>
+
