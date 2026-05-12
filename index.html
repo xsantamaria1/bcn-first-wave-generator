@@ -35,11 +35,11 @@ canvas{background:#002b5c;width:min(390px,95vw);height:auto;border-radius:14px;b
     <div class="row"><div><label>Door Closure vs last week (%)</label><input id="door" type="number" value="-8"></div><div><label>First Wave OTP (%)</label><input id="otp" type="number" value="91"></div></div>
     <div class="row"><div></div><div><label>FW OTP Target (%)</label><input id="otpTarget" type="number" value="95"></div></div>
     <div class="row"><div><label>Status override</label><select id="status"><option value="AUTO">AUTO</option><option value="RED">RED</option><option value="AMBER">AMBER</option><option value="GREEN">GREEN</option></select></div><div><label>Bottom message</label><input id="bottommsg" value="THANK YOU FOR YOUR COMMITMENT!"></div></div>
-    <button onclick="drawPoster()">Actualizar preview</button>
-    <button class="green" onclick="downloadPNG()">Descargar PNG WhatsApp</button>
-    <button class="red" onclick="setDemo('RED')">Rojo</button>
-    <button class="amber" onclick="setDemo('AMBER')">Ámbar</button>
-    <button class="green" onclick="setDemo('GREEN')">Verde</button>
+    <button onclick="drawPoster()">Refresh preview</button>
+    <button class="green" onclick="downloadPNG()">Download PNG Image</button>
+    <button class="red" onclick="setDemo('RED')">Red</button>
+    <button class="amber" onclick="setDemo('AMBER')">Amber</button>
+    <button class="green" onclick="setDemo('GREEN')">Green</button>
     <p class="hint"></p>
   </div>
   <canvas id="poster" width="1080" height="1795"></canvas>
