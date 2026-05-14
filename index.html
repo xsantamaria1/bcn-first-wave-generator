@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<!--
+First Wave Generator
+Developed by Xavi Santamaria
+2026
+-->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>First Wave WhatsApp Generator</title>
+<style>
+:root{--navy:#002b5c;--yellow:#ffd200;--red:#e30613;--amber:#f7b500;--green:#008542}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef2f7;color:#111}
+.wrap{display:flex;gap:24px;padding:24px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.panel{background:#fff;border-radius:16px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.12);width:370px}
+.panel h1{font-size:20px;margin:0 0 14px;color:var(--navy)}
+label{display:block;font-weight:700;font-size:13px;margin-top:10px;color:var(--navy)}
+input,select{width:100%;box-sizing:border-box;padding:9px;border:1px solid #cfd8e3;border-radius:8px;margin-top:4px;font-size:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{width:100%;border:0;padding:12px;margin-top:14px;border-radius:10px;font-weight:800;cursor:pointer;color:white;background:var(--navy);font-size:14px}
+button.green{background:var(--green)}button.red{background:var(--red)}button.amber{background:var(--amber);color:#002b5c}
+.hint{font-size:12px;color:#666;line-height:1.35;margin-top:10px}.smallhint{font-size:11px;color:#777;margin-top:3px}
+canvas{background:#002b5c;width:min(390px,95vw);height:auto;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>First Wave Generator</h1>
+    <div class="row"><div><label>Week</label><input id="week" value="20"></div><div><label>Dates</label><input id="dates" value="11 – 17 MAY 2026"></div></div>
+    <div class="row"><div><label>Base</label><input id="base" value="BARCELONA BASE"></div><div><label>IATA Base Code</label><input id="baseCode" value="BCN" maxlength="4"></div></div>
+    <div class="row"><div><label>Scan 1st pax STD -30 (%)</label><input id="scan" type="number" value="68"></div><div><label>Target (%)</label><input id="target" type="number" value="95"></div></div>
+    <div class="row"><div><label>Door Closure vs last week (%)</label><input id="door" type="number" value="-8"></div><div><label>First Wave OTP (%)</label><input id="otp" type="number" value="91"></div></div>
+    <div class="row"><div></div><div><label>FW OTP Target (%)</label><input id="otpTarget" type="number" value="95"></div></div>
+    <div class="row"><div><label>Status override</label><select id="status"><option value="AUTO">AUTO</option><option value="RED">RED</option><option value="AMBER">AMBER</option><option value="GREEN">GREEN</option></select></div><div><label>Communication Tone</label><select id="toneMode"><option value="POSITIVE">POSITIVE</option><option value="STANDARD">STANDARD</option><option value="OPERATIONAL">OPERATIONAL</option></select></div></div>
+    <label>Main Banner Override</label><input id="mainMessage" maxlength="34" value="">
+    <div class="row"><div><label>Motivation Message</label><input id="motivation" maxlength="32" value=""></div><div><label>Commitment Message</label><input id="commitment" maxlength="44" value="THANK YOU FOR YOUR COMMITMENT!"></div></div><div class="smallhint"></div>
+    <label>Operational Message</label><input id="opsMessage" maxlength="58" value="BE ON TIME. SCAN ON TIME. KEEP BASE ON TIME.">
+    <div class="row"><div><label>Action Bar Left</label><input id="actionLeft" maxlength="26" value="SCAN BEFORE STD -30"></div><div><label>Action Bar Right</label><input id="actionRight" maxlength="24" value="EVERY MINUTE COUNTS!"></div></div>
+    <div class="row"><div><label>Safety Banner</label><input id="safetyBanner" maxlength="36" value="SAFETY FIRST — NO COMPROMISE"></div><div><label>Footer Left</label><input id="footerLeft" maxlength="16" value="BE AWARE"></div></div>
+    <div class="row"><div><label>Footer Right</label><input id="footerRight" maxlength="18" value="WORK TOGETHER"></div><div><label>Door Red Label</label><input id="doorLabelRed" maxlength="22" value="FOCUS AREA"></div></div>
+    <div class="row"><div><label>Door Amber Label</label><input id="doorLabelAmber" maxlength="22" value="BUILDING MOMENTUM"></div><div><label>Door Green Label</label><input id="doorLabelGreen" maxlength="22" value="POSITIVE PROGRESS"></div></div>
+    <div class="row"><div><label>OTP Red Label</label><input id="otpLabelRed" maxlength="22" value="FOCUS AREA"></div><div><label>OTP Amber Label</label><input id="otpLabelAmber" maxlength="22" value="CLOSE TO TARGET"></div></div>
+    <div class="row"><div><label>OTP Green Label</label><input id="otpLabelGreen" maxlength="22" value="TARGET ACHIEVED"></div><div><label>Crew Full Text</label><input id="crewMessage" maxlength="24" value="♥ BCN CREW"></div></div><div class="smallhint"></div>
+    <button onclick="drawPoster()">Refresh preview</button>
+    <button class="green" onclick="downloadPNG()">Download PNG</button>
+    <button class="red" onclick="setDemo('RED')">Red</button>
+    <button class="amber" onclick="setDemo('AMBER')">Amber</button>
+    <button class="green" onclick="setDemo('GREEN')">Green</button>
+    <p class="hint">.</p>
+  </div>
+  <canvas id="poster" width="1080" height="1795"></canvas>
+</div>
+<script>
+
+
+const doorImg = new Image();
+doorImg.onload = () => drawPoster();
+doorImg.src = "";
+
+const handshakeImg = new Image();
+handshakeImg.onload = () => drawPoster();
+handshakeImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADUAAAAiCAYAAAD/NZFTAAAB6klEQVR4nMVYW27EMAgkVu9/uF4o/Vg5ImQMAzjdkapmY4wZ8zDxcf6Kh1M9H67k/2HatLRnFJR9Cydrw0+gROSzIyd4FxmA5JBRrC4tPwnCuStSK0V6nDGY2VkvxKPwh8Q8T1lF89l6zZvHeMZuVmTH/L1cH5FiQyxamB33NoDBw1uRp5ACa0xHTmMVXvM/7S1b/VgvdQzNgJ1/I1cp6dXKBw0gkMlPEbmTquaShqdDnzNvnHmXzmFfBBOqhKvlfiLlLRt+b3jJFo1D+hXP4qZvEIqzxeM0f3MMVS8xcqx+F1Gh2LGT3mbosV1eOwdQXOnPtNwBnqM5en1G1srdQnwYYS3U2blON8Kua0P80jPMi29+MzHEvN7wmo9yCpFD7n7jrKl4LCzpVhiVX9tVd8hF+Ys6+EOett3AtkkoQXeFKkMsdfhnej+9oK5weuHdfV1p41hSmcTtEOscJxeynlrFe2ZXM3lUQpYUKhZRR+7p0dhGLFso7ILZm6BoDBWI9BdCxlNRiHnN60oP8iiam8qravXTiHaTKQBUp8CiQkqjG4peuJVRJZUh0L06SyN7RYYWtddYTGKj42DHHYmI9MPPGlFpQksVzsMOUiLPhI6a0lfRCT+EGUaZ82n7N9xuUiLP6+Dodmk7/gBtv5cgFF6DEAAAAABJRU5ErkJggg==";
+
+
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    this.moveTo(x+r,y);
+    this.arcTo(x+w,y,x+w,y+h,r);
+    this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r);
+    this.arcTo(x,y,x+w,y,r);
+    return this;
+  }
+}
+
+const C={navy:'#002b5c',navy2:'#001f49',yellow:'#ffd200',red:'#e30613',amber:'#f7b500',green:'#008542',white:'#fff',grey:'#dedede',paleRed:'#fff0f0',paleAmber:'#fff8df',paleGreen:'#edf8f0'};
+function val(id){return document.getElementById(id).value} function num(id){return parseFloat(val(id)||0)} function baseCode(){return (val('baseCode')||'BCN').trim().toUpperCase()} function upper(id,fallback){return (val(id)||fallback).toUpperCase()}
+function cleanLimit(text,max){text=(text||'').toString().trim();return text.length>max?text.slice(0,max):text}
+function crewText(){
+  const raw = (val('crewMessage') || `♥ ${baseCode()} CREW`).trim();
+  return cleanLimit(
+    raw
+      .replace(/<3/g,'♥')
+      .replace(/BASE/g,baseCode())
+      .replace(/IATA/g,baseCode()),
+    24
+  ).toUpperCase();
+}
+
+function wrapWords(text,maxChars,maxLines=2){
+  text=cleanLimit(text,maxChars).toUpperCase();
+  const words=text.split(/\s+/).filter(Boolean);
+  const lines=[''];
+  for(const w of words){
+    let i=lines.length-1;
+    const test=(lines[i]+' '+w).trim();
+    if(test.length<=Math.ceil(maxChars/maxLines)+4 || lines[i].length===0){lines[i]=test;}
+    else if(lines.length<maxLines){lines.push(w);}
+    else{lines[i]=cleanLimit((lines[i]+' '+w).trim(),Math.ceil(maxChars/maxLines)+4);}
+  }
+  return lines;
+}
+function centerWrapped(ctx,text,x,y,size,fill,maxChars,lineGap=36,maxLines=2){
+  const lines=wrapWords(text,maxChars,maxLines);
+  const total=(lines.length-1)*lineGap;
+  lines.forEach((line,idx)=>center(ctx,line,x,y-total/2+idx*lineGap,size,fill));
+}
+function mainStatus(){const o=val('status');if(o!=='AUTO')return o;const s=num('scan'),t=num('target');if(s>=t)return'GREEN';if(s>=90)return'AMBER';return'RED'}
+function mainTheme(){
+const st=mainStatus(),tone=val('toneMode')||'POSITIVE';
+let p;
+if(tone==='OPERATIONAL'){
+ if(st==='GREEN')p={name:'GREEN',color:C.green,title:'TARGET ACHIEVED',note:'Stable performance',icon:'check'};
+ else if(st==='AMBER')p={name:'AMBER',color:C.amber,title:'MONITOR PERFORMANCE',note:'Maintain focus',icon:'warn'};
+ else p={name:'RED',color:C.red,title:'ACTION REQUIRED',note:'Operational focus required',icon:'warn'};
+}else if(tone==='STANDARD'){
+ if(st==='GREEN')p={name:'GREEN',color:C.green,title:'FIRST WAVE ON TRACK',note:'Excellent!',icon:'check'};
+ else if(st==='AMBER')p={name:'AMBER',color:C.amber,title:'FIRST WAVE NEEDS ATTENTION',note:'Keep it up!',icon:'warn'};
+ else p={name:'RED',color:C.red,title:'FIRST WAVE FOCUS AREA',note:"Let's improve!",icon:'warn'};
+}else{
+ if(st==='GREEN')p={name:'GREEN',color:C.green,title:'GREAT JOB TEAM',note:'Excellent!',icon:'check'};
+ else if(st==='AMBER')p={name:'AMBER',color:C.amber,title:'GOOD PROGRESS',note:'Keep building momentum!',icon:'warn'};
+ else p={name:'RED',color:C.red,title:'FOCUS AREA',note:"Let's keep improving!",icon:'warn'};
+}
+const mt=(val('mainMessage')||'').trim(); if(mt)p.title=mt.toUpperCase();
+const mo=cleanLimit((val('motivation')||'').trim(),32); if(mo)p.note=mo;
+return p;
+}
+function doorTheme(){const d=num('door');if(d>=0)return{color:C.green,pale:C.paleGreen,label:cleanLimit(upper('doorLabelGreen','POSITIVE PROGRESS'),22)};if(d>=-5)return{color:C.amber,pale:C.paleAmber,label:cleanLimit(upper('doorLabelAmber','BUILDING MOMENTUM'),22)};return{color:C.red,pale:C.paleRed,label:cleanLimit(upper('doorLabelRed','FOCUS AREA'),22)}}
+function otpTheme(){const o=num('otp'),t=num('otpTarget')||95;if(o>=t)return{color:C.green,pale:C.paleGreen,label:cleanLimit(upper('otpLabelGreen','TARGET ACHIEVED'),22)};if(o>=t-3)return{color:C.amber,pale:C.paleAmber,label:cleanLimit(upper('otpLabelAmber','CLOSE TO TARGET'),22)};return{color:C.red,pale:C.paleRed,label:cleanLimit(upper('otpLabelRed','FOCUS AREA'),22)}}
+function fmtPct(x){return Math.round(x)+'%'} function fmtSigned(x){return(x>0?'+':'')+Math.round(x)+'%'}
+function rr(ctx,x,y,w,h,r,fill,stroke=null,lw=2){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}}
+function txt(ctx,text,x,y,size,fill=C.navy,align='left',weight=900,font='Arial'){ctx.fillStyle=fill;ctx.textAlign=align;ctx.textBaseline='top';ctx.font=`${weight} ${size}px ${font}`;ctx.fillText(text,x,y)}
+function center(ctx,text,x,y,size,fill=C.navy,weight=900,font='Arial'){txt(ctx,text,x,y,size,fill,'center',weight,font)}
+function fitText(ctx,text,x,y,maxWidth,fontSize,fill,align='left',weight=900,font='Arial'){let s=fontSize;do{ctx.font=`${weight} ${s}px ${font}`;if(ctx.measureText(text).width<=maxWidth)break;s-=2}while(s>10);ctx.fillStyle=fill;ctx.textAlign=align;ctx.textBaseline='top';ctx.fillText(text,x,y)}
+function ring(ctx,cx,cy,r,pct,color){ctx.lineWidth=28;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,Math.PI*1.5);ctx.strokeStyle=C.grey;ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(0,Math.min(100,pct))/100);ctx.strokeStyle=color;ctx.stroke();ctx.lineCap='butt'}
+function circle(ctx,x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill()} function strokeRound(ctx,color,w=8){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round'}
+function iconWarning(ctx,x,y,s,themeColor){ctx.save();ctx.translate(x,y);ctx.fillStyle=C.white;ctx.beginPath();ctx.moveTo(0,-s*.55);ctx.lineTo(s*.60,s*.50);ctx.lineTo(-s*.60,s*.50);ctx.closePath();ctx.fill();txt(ctx,'!',0,-s*.24,s*.76,themeColor,'center',900,'Arial');ctx.restore()}
+function iconCheck(ctx,x,y,s){ctx.save();strokeRound(ctx,C.white,s*.13);ctx.beginPath();ctx.moveTo(x-s*.36,y);ctx.lineTo(x-s*.10,y+s*.30);ctx.lineTo(x+s*.42,y-s*.35);ctx.stroke();ctx.restore()}
+function iconCalendar(ctx,x,y,s){ctx.save();ctx.translate(x,y);ctx.strokeStyle=C.white;ctx.lineWidth=4;ctx.strokeRect(-s/2,-s/2,s,s);ctx.fillStyle=C.white;ctx.fillRect(-s/2,-s/2,s,13);for(let r=0;r<3;r++){for(let c=0;c<3;c++){ctx.fillRect(-s/2+12+c*16,-s/2+25+r*13,8,8)}}ctx.restore()}
+function iconDoor(ctx,x,y,r,color){
+circle(ctx,x,y,r,color);ctx.save();ctx.translate(x,y);
+ctx.strokeStyle=C.white;ctx.lineWidth=7;ctx.lineJoin='round';ctx.lineCap='round';
+ctx.strokeRect(-24,-38,44,76);
+ctx.beginPath();ctx.moveTo(8,-32);ctx.lineTo(8,32);ctx.stroke();
+ctx.fillStyle=C.white;ctx.beginPath();ctx.arc(1,0,4,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.moveTo(-44,26);ctx.lineTo(-17,10);ctx.lineTo(-17,23);ctx.moveTo(-44,26);ctx.lineTo(-28,42);ctx.moveTo(-44,26);ctx.lineTo(-54,14);ctx.stroke();
+ctx.restore()}
+function iconPlane(ctx,x,y,r,color){
+circle(ctx,x,y,r,color);ctx.save();ctx.translate(x,y);ctx.rotate(-0.35);
+ctx.fillStyle=C.white;
+ctx.beginPath();
+ctx.moveTo(54,0);ctx.quadraticCurveTo(18,-10,-8,-8);
+ctx.lineTo(-45,-24);ctx.lineTo(-52,-13);ctx.lineTo(-22,3);
+ctx.lineTo(-47,18);ctx.lineTo(-39,28);ctx.lineTo(-7,10);
+ctx.quadraticCurveTo(20,9,54,0);
+ctx.closePath();ctx.fill();
+ctx.fillStyle=color;ctx.beginPath();ctx.arc(-3,0,3,0,Math.PI*2);ctx.fill();
+ctx.restore()}
+function iconClock(ctx,x,y,s,color){
+ctx.save();ctx.translate(x,y);strokeRound(ctx,color,7);
+ctx.beginPath();ctx.arc(0,0,s*.38,0,Math.PI*2);ctx.stroke();
+ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-s*.22);ctx.moveTo(0,0);ctx.lineTo(s*.18,s*.12);ctx.stroke();
+ctx.restore()}
+function iconStopwatch(ctx,x,y,s,color){ctx.save();ctx.translate(x,y);strokeRound(ctx,color,8);ctx.beginPath();ctx.arc(0,8,s*.36,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(0,8);ctx.lineTo(18,-10);ctx.moveTo(0,8);ctx.lineTo(-4,-18);ctx.stroke();ctx.fillStyle=color;ctx.fillRect(-10,-s*.47,20,12);strokeRound(ctx,color,7);ctx.beginPath();ctx.moveTo(-s*.58,0);ctx.lineTo(-s*.85,0);ctx.moveTo(-s*.55,17);ctx.lineTo(-s*.76,23);ctx.moveTo(-s*.48,-17);ctx.lineTo(-s*.67,-28);ctx.stroke();ctx.restore()}
+function iconClipboard(ctx,x,y,s){ctx.save();ctx.translate(x,y);strokeRound(ctx,C.yellow,6);ctx.strokeRect(-27,-35,54,70);ctx.strokeRect(-13,-46,26,18);for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(-12,-15+i*20);ctx.lineTo(15,-15+i*20);ctx.stroke()}ctx.restore()}
+function iconHandshake(ctx,x,y,s){
+ctx.save();ctx.translate(x,y);
+ctx.strokeStyle=C.yellow;
+ctx.lineWidth=7;
+ctx.lineCap='round';
+ctx.lineJoin='round';
+ctx.beginPath();
+ctx.moveTo(-48,-5);
+ctx.lineTo(-24,-25);
+ctx.lineTo(-8,-8);
+ctx.moveTo(48,-5);
+ctx.lineTo(24,-25);
+ctx.lineTo(8,-8);
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(-8,-8);
+ctx.lineTo(8,-8);
+ctx.lineTo(25,10);
+ctx.lineTo(15,22);
+ctx.lineTo(0,8);
+ctx.lineTo(-15,22);
+ctx.lineTo(-25,10);
+ctx.closePath();
+ctx.stroke();
+ctx.beginPath();
+ctx.moveTo(-2,2);
+ctx.lineTo(12,16);
+ctx.moveTo(-12,7);
+ctx.lineTo(3,22);
+ctx.moveTo(8,3);
+ctx.lineTo(20,14);
+ctx.stroke();
+ctx.restore();
+}
+
+function iconPlaneCleanGood(ctx,x,y,r,color){
+  circle(ctx,x,y,r,color);
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(-0.45);
+  ctx.fillStyle=C.white;
+
+  // very recognisable aircraft silhouette
+  ctx.beginPath();
+  ctx.moveTo(50,0);              // nose
+  ctx.lineTo(8,-7);              // fuselage top
+  ctx.lineTo(-34,-28);           // upper wing
+  ctx.lineTo(-45,-16);
+  ctx.lineTo(-16,2);
+  ctx.lineTo(-45,22);            // lower wing
+  ctx.lineTo(-34,34);
+  ctx.lineTo(8,9);               // fuselage bottom
+  ctx.closePath();
+  ctx.fill();
+
+  // tail
+  ctx.beginPath();
+  ctx.moveTo(-26,-1);
+  ctx.lineTo(-54,-8);
+  ctx.lineTo(-58,-22);
+  ctx.lineTo(-35,-12);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function iconDoorCleanGood(ctx,x,y,r,color){
+  circle(ctx,x,y,r,color);
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.strokeStyle=C.white;
+  ctx.fillStyle=C.white;
+  ctx.lineWidth=6;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+
+  // door frame
+  ctx.beginPath();
+  ctx.roundRect(-18,-36,40,72,7);
+  ctx.stroke();
+
+  // inner door
+  ctx.beginPath();
+  ctx.moveTo(-7,-28);
+  ctx.lineTo(10,-22);
+  ctx.lineTo(10,29);
+  ctx.lineTo(-7,35);
+  ctx.closePath();
+  ctx.stroke();
+
+  // handle
+  ctx.beginPath();
+  ctx.arc(1,0,4,0,Math.PI*2);
+  ctx.fill();
+
+  // small aircraft / flow, simple and legible
+  ctx.save();
+  ctx.translate(-28,22);
+  ctx.rotate(-0.45);
+  ctx.beginPath();
+  ctx.moveTo(28,0);
+  ctx.lineTo(5,-4);
+  ctx.lineTo(-18,-15);
+  ctx.lineTo(-23,-7);
+  ctx.lineTo(-7,1);
+  ctx.lineTo(-23,12);
+  ctx.lineTo(-17,19);
+  ctx.lineTo(5,5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+
+function impactBadge(ctx,x,y,r,color,label,sub=''){
+  circle(ctx,x,y,r,color);
+  ctx.fillStyle=C.white;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.font='900 26px Arial';
+  ctx.fillText(label,x,y-4);
+  if(sub){
+    ctx.font='900 16px Arial';
+    ctx.fillText(sub,x,y+22);
+  }
+}
+
+function titleWithLines(ctx,text,y){
+ctx.strokeStyle=C.navy;ctx.lineWidth=3;ctx.beginPath();
+if(text==='IMPACT ON PERFORMANCE'){ctx.moveTo(80,y+18);ctx.lineTo(300,y+18);ctx.moveTo(780,y+18);ctx.lineTo(1000,y+18);}
+else{ctx.moveTo(80,y+18);ctx.lineTo(250,y+18);ctx.moveTo(830,y+18);ctx.lineTo(1000,y+18);}
+ctx.stroke();center(ctx,text,540,y,27,C.navy)}
+function drawPoster(){
+const canvas=document.getElementById('poster'),ctx=canvas.getContext('2d'),th=mainTheme(),dh=doorTheme(),oh=otpTheme();
+ctx.clearRect(0,0,1080,1920);ctx.fillStyle=C.navy;ctx.fillRect(0,0,1080,1920);
+txt(ctx,'RYANAIR',72,44,72,C.white);txt(ctx,val('base').toUpperCase(),78,120,34,C.yellow);
+ctx.strokeStyle=C.white;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(530,35);ctx.lineTo(530,142);ctx.stroke();ctx.beginPath();ctx.arc(612,88,51,0,Math.PI*2);ctx.strokeStyle=C.white;ctx.lineWidth=3;ctx.stroke();iconCalendar(ctx,612,88,58);
+txt(ctx,'WEEK '+val('week'),700,42,38,C.white);txt(ctx,val('dates').toUpperCase(),700,90,28,C.yellow);
+rr(ctx,35,205,1010,1495,28,C.white);rr(ctx,35,205,1010,95,24,th.color);ctx.fillStyle=th.color;ctx.fillRect(35,250,1010,50);
+if(th.icon==='check')iconCheck(ctx,125,250,70);else iconWarning(ctx,125,250,84,th.color);fitText(ctx,th.title,220,224,790,58,C.white);
+titleWithLines(ctx,'OUR START IMPACTS THE WHOLE DAY',318);
+ring(ctx,285,545,150,num('scan'),th.color);center(ctx,fmtPct(num('scan')),285,462,104,th.color);center(ctx,'SCAN 1st pax',285,570,27,C.navy);center(ctx,'before STD -30',285,603,27,C.navy);
+ctx.strokeStyle='#b8b8b8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(530,382);ctx.lineTo(530,705);ctx.stroke();txt(ctx,'TARGET',700,405,31,C.navy);txt(ctx,fmtPct(num('target')),680,465,105,C.navy);ctx.strokeStyle='#b8b8b8';ctx.beginPath();ctx.moveTo(660,606);ctx.lineTo(925,606);ctx.stroke();txt(ctx,'Scan 1st pax',675,632,29,C.navy);txt(ctx,'before STD -30',675,668,29,C.navy);
+titleWithLines(ctx,'IMPACT ON PERFORMANCE',735);
+rr(ctx,70,800,440,245,22,dh.pale);rr(ctx,545,800,465,245,22,oh.pale);
+
+center(ctx,'DOOR CLOSURE STD -5',290,835,30,C.navy);center(ctx,fmtSigned(num('door')),320,910,74,dh.color);rr(ctx,105,980,365,45,8,dh.color);fitText(ctx,dh.label,287,990,330,22,C.white,'center');
+center(ctx,'FIRST WAVE OTP',780,835,30,C.navy);center(ctx,fmtPct(num('otp')),805,900,76,oh.color);rr(ctx,585,980,385,45,8,oh.color);fitText(ctx,oh.label,778,990,350,21,C.white,'center');
+rr(ctx,55,1070,970,135,16,C.navy);iconStopwatch(ctx,125,1125,90,th.color);fitText(ctx,upper('actionLeft','SCAN BEFORE STD -30'),205,1108,420,36,C.white,'left',900,'Arial');ctx.strokeStyle=C.white;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(675,1090);ctx.lineTo(675,1178);ctx.stroke();centerWrapped(ctx,upper('actionRight','EVERY MINUTE COUNTS!'),850,1120,28,C.white,24,38,2);
+rr(ctx,55,1220,970,65,8,th.color);txt(ctx,'»»',95,1235,42,C.white);const opsText=(val('opsMessage')||'BE ON TIME. SCAN ON TIME. KEEP BASE ON TIME.').replace(/BASE/g,baseCode());center(ctx,opsText.toUpperCase(),570,1245,28,C.white);
+ctx.strokeStyle='#bbb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(540,1315);ctx.lineTo(540,1445);ctx.stroke();
+fitText(ctx,cleanLimit(th.note,32),95,1375,410,56,C.navy,'left',900,'Segoe Print,Comic Sans MS,Arial');
+ctx.strokeStyle=th.color;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(100,1470);ctx.lineTo(410,1430);ctx.stroke();
+const bottomText=cleanLimit(val('commitment')||val('bottommsg')||'THANK YOU FOR YOUR COMMITMENT!',44);centerWrapped(ctx,bottomText,760,1362,32,C.navy,44,38,2);
+fitText(ctx,crewText(),650,1448,350,40,th.color,'left',900,'Segoe UI Symbol, Arial');
+rr(ctx,35,1550,1010,150,28,th.color);fitText(ctx,upper('safetyBanner','SAFETY FIRST — NO COMPROMISE'),540,1600,920,45,th.name==='AMBER'?C.navy:C.white,'center');
+ctx.fillStyle=C.navy;
+ctx.fillRect(35,1700,1010,80);
+
+// línea separadora centrada
+ctx.strokeStyle='rgba(255,255,255,.6)';
+ctx.lineWidth=2;
+ctx.beginPath();
+ctx.moveTo(540,1710);
+ctx.lineTo(540,1770);
+ctx.stroke();
+
+// IZQUIERDA → icono + texto alineados
+iconClock(ctx,210,1740,54,C.yellow);
+txt(ctx,upper('footerLeft','BE AWARE'),270,1728,30,C.white,'left',900,'Arial');
+
+// DERECHA → icono + texto alineados
+if (handshakeImg.complete) {
+  ctx.drawImage(handshakeImg, 615,1713,64,64);
+}
+txt(ctx,upper('footerRight','WORK TOGETHER'),690,1728,30,C.white,'left',900,'Arial');
+}
+function downloadPNG(){drawPoster();const a=document.createElement('a');a.download=`${baseCode()}_First_Wave_Week_${val('week')}_${mainStatus()}.png`;a.href=document.getElementById('poster').toDataURL('image/png');a.click()}
+function setDemo(s){document.getElementById('status').value=s;if(s==='RED'){scan.value=68;door.value=-8;otp.value=91}if(s==='AMBER'){scan.value=93;door.value=-3;otp.value=93}if(s==='GREEN'){scan.value=96;door.value=5;otp.value=97}drawPoster()}
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',drawPoster));drawPoster();
+</script>
+</body>
+</html>
